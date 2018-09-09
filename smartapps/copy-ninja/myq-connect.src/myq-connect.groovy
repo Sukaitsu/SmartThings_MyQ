@@ -21,9 +21,9 @@ definition(
 	author: "Jason Mok",
 	description: "Connect MyQ to control your devices",
 	category: "SmartThings Labs",
-    iconUrl:   "https://raw.githubusercontent.com/brbeaird/SmartThings_MyQ/master/icons/myq.png",
-	iconX2Url: "https://raw.githubusercontent.com/brbeaird/SmartThings_MyQ/master/icons/myq@2x.png",
-	iconX3Url: "https://raw.githubusercontent.com/brbeaird/SmartThings_MyQ/master/icons/myq@3x.png"
+    	iconUrl:   "https://raw.githubusercontent.com/Sukaitsu/SmartThings_MyQ/master/icons/myq.png",
+	iconX2Url: "https://raw.githubusercontent.com/Sukaitsu/SmartThings_MyQ/master/icons/myq@2x.png",
+	iconX3Url: "https://raw.githubusercontent.com/Sukaitsu/SmartThings_MyQ/master/icons/myq@3x.png"
 )
 
 preferences {
