@@ -21,9 +21,9 @@ definition(
 	author: "Jason Mok",
 	description: "Connect MyQ to control your devices",
 	category: "SmartThings Labs",
-	iconUrl:   "http://smartthings.copyninja.net/icons/MyQ@1x.png",
-	iconX2Url: "http://smartthings.copyninja.net/icons/MyQ@2x.png",
-	iconX3Url: "http://smartthings.copyninja.net/icons/MyQ@3x.png"
+    iconUrl:   "https://raw.githubusercontent.com/brbeaird/SmartThings_MyQ/master/icons/myq.png",
+	iconX2Url: "https://raw.githubusercontent.com/brbeaird/SmartThings_MyQ/master/icons/myq@2x.png",
+	iconX3Url: "https://raw.githubusercontent.com/brbeaird/SmartThings_MyQ/master/icons/myq@3x.png"
 )
 
 preferences {
@@ -161,8 +161,9 @@ private forceLogin() {
 private login() { return (!(state.session.expiration > now())) ? doLogin() : true }
 
 private doLogin() { 
-	apiGet("/api/user/validate", [username: settings.username, password: settings.password] ) { response ->
-		if (response.status == 200) {
+    apiPostLogin("/api/v4/User/Validate", [ username: settings.username, password: settings.password ]) { response ->	
+		log.debug "got login response: " + response
+        if (response.status == 200) {
 			if (response.data.SecurityToken != null) {
 				state.session.brandID = response.data.BrandId
 				state.session.brandName = response.data.BrandName
@@ -175,7 +176,7 @@ private doLogin() {
 		} else {
 			return false
 		}
-	} 	
+	}
 }
 
 // Listing all the garage doors you have in MyQ
@@ -234,6 +235,8 @@ private getDeviceList() {
 	return deviceList
 }
 
+
+
 /* api connection */
 // get URL 
 private getApiURL() {
@@ -246,22 +249,30 @@ private getApiURL() {
 
 private getApiAppID() {
 	if (settings.brand == "Craftsman") {
-		return "QH5AzY8MurrilYsbcG1f6eMTffMCm3cIEyZaSdK/TD/8SvlKAWUAmodIqa5VqVAs"
+		return "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
 	} else {
-		return "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
+		return "NWknvuBd7LoFHfXmKNMBcgajXtZEgKUh4V7WNzMidrpUUluDpVYVZx+xT4PCM5Kx"
 	}
 }
 	
 // HTTP GET call
 private apiGet(apiPath, apiQuery = [], callback = {}) {	
 	// set up query
+    def myHeaders = ""
+    
+    
 	apiQuery = [ appId: getApiAppID() ] + apiQuery
-	if (state.session.securityToken) { apiQuery = apiQuery + [SecurityToken: state.session.securityToken ] }
+	if (state.session.securityToken) { 
+    	apiQuery = apiQuery + [SecurityToken: state.session.securityToken ] 
+        myHeaders = [ "SecurityToken": state.session.securityToken,                        
+                         "MyQApplicationId": getApiAppID() ]
+        }
        
 	try {
-		httpGet([ uri: getApiURL(), path: apiPath, query: apiQuery ]) { response -> callback(response) }
+		httpGet([ uri: getApiURL(), path: apiPath, headers: myHeaders, query: apiQuery ]) { response -> callback(response) }
 	}	catch (SocketException e)	{
-		log.debug "API Error: $e"
+		//sendAlert("API Error: $e")
+        log.debug "API Error: $e"
 	}
 }
 
@@ -271,12 +282,34 @@ private apiPut(apiPath, apiBody = [], callback = {}) {
 	apiBody = [ ApplicationId: getApiAppID() ] + apiBody
 	if (state.session.securityToken) { apiBody = apiBody + [SecurityToken: state.session.securityToken ] }
     
-	// set up query
+	def myHeaders = ""  
+    
+    // set up query
 	def apiQuery = [ appId: getApiAppID() ]
-	if (state.session.securityToken) { apiQuery = apiQuery + [SecurityToken: state.session.securityToken ] }
+	if (state.session.securityToken) { 
+    	apiQuery = apiQuery + [SecurityToken: state.session.securityToken ]
+        myHeaders = [ "SecurityToken": state.session.securityToken,                        
+                         "MyQApplicationId": getApiAppID() ]
+    }
     
 	try {
-		httpPut([ uri: getApiURL(), path: apiPath, contentType: "application/json; charset=utf-8", body: apiBody, query: apiQuery ]) { response -> callback(response) }
+		httpPut([ uri: getApiURL(), path: apiPath, headers: myHeaders, contentType: "application/json; charset=utf-8", body: apiBody, query: apiQuery ]) { response -> callback(response) }
+	} catch (SocketException e)	{
+		log.debug "API Error: $e"
+	}
+}
+
+// HTTP POST call
+private apiPostLogin(apiPath, apiBody = [], callback = {}) {    
+	// set up body
+	apiBody = apiBody
+    def myHeaders = [ "User-Agent": "Chamberlain/3.73",
+                        "BrandId": "2",
+                         "ApiVersion": "4.1",
+                         "Culture": "en",
+                         "MyQApplicationId": getApiAppID() ]
+	try {
+		httpPost([ uri: getApiURL(), path: apiPath, headers: myHeaders, contentType: "application/json; charset=utf-8", body: apiBody ]) { response -> callback(response) }
 	} catch (SocketException e)	{
 		log.debug "API Error: $e"
 	}
